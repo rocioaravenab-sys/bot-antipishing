@@ -1,0 +1,15 @@
+# Discord
+discord.py>=2.3.0
+
+# Configuración
+python-dotenv>=1.0.0
+
+# OCR y QR
+pytesseract>=0.3.10        # requiere el binario 'tesseract' instalado en el sistema
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0   # preprocesado de imagen para mejorar OCR/QR
+pyzbar>=0.1.9              # requiere 'zbar' instalado en el sistema
+
+# Análisis de URLs
+requests>=2.31.0
+tldextract>=5.0.0

@@ -1,0 +1,13 @@
+# Secretos — NUNCA subir
+.env
+
+# Datos locales
+reportes.jsonl
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Sistema
+.DS_Store
