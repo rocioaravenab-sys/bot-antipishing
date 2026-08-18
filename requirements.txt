@@ -10,6 +10,7 @@ Pillow>=10.0.0
 opencv-python-headless>=4.8.0   # preprocesado de imagen para mejorar OCR/QR
 pyzbar>=0.1.9              # requiere 'zbar' instalado en el sistema
 
-# Análisis de URLs
+# Análisis de URLs y teléfonos
 requests>=2.31.0
 tldextract>=5.0.0
+phonenumbers>=8.13.0       # validación del número remitente (tipo de línea, región)
