@@ -21,6 +21,8 @@ def _get_int(name: str, default: int) -> int:
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "").strip()
 # ID del servidor para registrar los comandos slash al instante (0 = global).
 GUILD_ID = _get_int("GUILD_ID", 0)
+# Enlace de donación ("invítame un café"). Por defecto, el mismo de la web.
+DONATION_URL = os.getenv("DONATION_URL", "https://mpago.la/1UyNrnp").strip()
 
 # --- Threat intel (opcionales) ---
 GOOGLE_SAFE_BROWSING_API_KEY = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "").strip()

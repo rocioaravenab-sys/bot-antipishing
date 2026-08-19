@@ -15,7 +15,14 @@ from discord import app_commands
 
 import config
 from analysis.scanner import scan_message
-from bot_ui import help_embed, member_welcome_embed, message_embed, no_url_embed
+from bot_ui import (
+    donation_embed,
+    donation_view,
+    help_embed,
+    member_welcome_embed,
+    message_embed,
+    no_url_embed,
+)
 from extractors.ocr import extract_urls_from_image, find_urls_in_text
 from extractors.qr import extract_qr_urls
 
@@ -66,7 +73,16 @@ async def process_image(message: discord.Message, data: bytes) -> None:
 @tree.command(name="ayuda", description="Muestra la guía de uso del bot anti-phishing")
 async def ayuda(interaction: discord.Interaction) -> None:
     # ephemeral=True: la guía solo la ve quien la pidió (no llena el canal).
-    await interaction.response.send_message(embed=help_embed(), ephemeral=True)
+    await interaction.response.send_message(
+        embed=help_embed(), view=donation_view(), ephemeral=True
+    )
+
+
+@tree.command(name="donar", description="Invítale un café al bot ☕")
+async def donar(interaction: discord.Interaction) -> None:
+    await interaction.response.send_message(
+        embed=donation_embed(), view=donation_view(), ephemeral=True
+    )
 
 
 @tree.command(name="analizar", description="Analiza una URL o mensaje sospechoso de phishing")
@@ -124,7 +140,7 @@ async def on_guild_join(guild: discord.Guild) -> None:
         )
     if channel is not None:
         try:
-            await channel.send(embed=help_embed())
+            await channel.send(embed=help_embed(), view=donation_view())
         except discord.DiscordException:
             log.exception("No pude enviar el mensaje de bienvenida en %s", guild.name)
 

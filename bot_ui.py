@@ -3,12 +3,40 @@ from __future__ import annotations
 
 import discord
 
+import config
 from analysis.scanner import (
     RISK_HIGH,
     RISK_LOW,
     RISK_MEDIUM,
     MessageReport,
 )
+
+
+def donation_view() -> discord.ui.View:
+    """Vista con un botón de enlace '☕ Invítame un café' (sin estado)."""
+    view = discord.ui.View()
+    view.add_item(
+        discord.ui.Button(
+            label="Invítame un café",
+            emoji="☕",
+            style=discord.ButtonStyle.link,
+            url=config.DONATION_URL,
+        )
+    )
+    return view
+
+
+def donation_embed() -> discord.Embed:
+    """Mensaje de agradecimiento que acompaña al botón de donación."""
+    return discord.Embed(
+        title="☕ ¿Te sirvió el bot?",
+        description=(
+            "Este bot es gratis y se mantiene solo con lo que la gente quiera aportar. "
+            "Si te ahorró un susto, puedes invitarme un café con el botón de abajo. "
+            "¡Gracias por apoyar el proyecto! 💛"
+        ),
+        color=0xF5A623,
+    )
 
 _COLORS = {
     RISK_HIGH: 0xE02424,    # rojo
