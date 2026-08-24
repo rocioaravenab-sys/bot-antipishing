@@ -1,5 +1,10 @@
-# Discord
+# Discord (bot)
 discord.py>=2.3.0
+
+# API REST (app móvil)
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
 
 # Configuración
 python-dotenv>=1.0.0

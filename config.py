@@ -24,6 +24,10 @@ GUILD_ID = _get_int("GUILD_ID", 0)
 # Enlace de donación ("invítame un café"). Por defecto, el mismo de la web.
 DONATION_URL = os.getenv("DONATION_URL", "https://mpago.la/1UyNrnp").strip()
 
+# --- API REST (para la app móvil) ---
+# Si se define, /analyze y /analyze-text exigen el header X-API-Key.
+API_KEY = os.getenv("API_KEY", "").strip()
+
 # --- Threat intel (opcionales) ---
 GOOGLE_SAFE_BROWSING_API_KEY = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "").strip()
 URLHAUS_AUTH_KEY = os.getenv("URLHAUS_AUTH_KEY", "").strip()
