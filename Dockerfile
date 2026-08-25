@@ -19,5 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia el resto del código.
 COPY . .
 
-# Arranca el bot. El token se pasa por variable de entorno DISCORD_TOKEN.
-CMD ["python", "bot.py"]
+# Por defecto arranca la API REST (que alimenta la app móvil). No necesita
+# token. Railway inyecta la variable PORT.
+# Si en el futuro se revive el bot de Discord, crear un servicio con
+# Custom Start Command: python bot.py (y su variable DISCORD_TOKEN).
+CMD ["sh", "-c", "uvicorn api:app --host 0.0.0.0 --port ${PORT:-8000}"]
