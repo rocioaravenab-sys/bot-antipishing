@@ -1,0 +1,8 @@
+{
+  "_comment": "Dominios de acortadores de URL más comunes. Canónico: este archivo. Consumido por analysis/rules.py y expuesto en GET /rules.",
+  "domains": [
+    "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly",
+    "cutt.ly", "rebrand.ly", "shorturl.at", "rb.gy", "bl.ink", "t.ly",
+    "acortar.link", "n9.cl", "v.gd", "s.id", "lnkd.in"
+  ]
+}

@@ -76,6 +76,8 @@ def build_complaint_text(report: "MessageReport") -> str:
     signals: list[str] = []
     if report.scam_signal:
         signals.append(report.scam_signal)
+    if report.brand_signal:
+        signals.append(report.brand_signal)
     for p in report.phones:
         signals.extend(p.signals)
     for r in report.urls:

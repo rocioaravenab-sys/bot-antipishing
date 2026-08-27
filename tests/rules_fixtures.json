@@ -1,0 +1,91 @@
+{
+  "_comment": "Fixtures CANÓNICAS del camino offline (sin red). Se corren en Python (tests/test_offline_parity.py) y, en el monorepo, en packages/rules (parity.test.ts) sobre este MISMO archivo. Si cambian las reglas y estas divergen, algún test falla. 'kind': 'url' -> heuristics.analyze_url; 'text' -> heuristics.scam_keyword_hits(langs es+pt).",
+  "cases": [
+    {
+      "id": "url-suspicious-tld",
+      "kind": "url",
+      "input": "http://premios-clientes.top/regalo",
+      "expect_signal_substrings": ["nivel superior sospechoso"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-typosquat-bancoestado",
+      "kind": "url",
+      "input": "https://bancoestadk.cl/login",
+      "expect_signal_substrings": ["se parece mucho a 'bancoestado'"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-punycode",
+      "kind": "url",
+      "input": "https://xn--bancoestado-1nb.cl/",
+      "expect_signal_substrings": ["punycode"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-ip-host",
+      "kind": "url",
+      "input": "http://192.0.2.55/verifica",
+      "expect_signal_substrings": ["dirección IP"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-many-hyphens",
+      "kind": "url",
+      "input": "https://banco-estado-seguro-clave-cl.com/",
+      "expect_signal_substrings": ["muchos guiones"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-subdomain-brand",
+      "kind": "url",
+      "input": "https://bancoestado.seguro-verificacion.com/acceso",
+      "expect_signal_substrings": ["en un subdominio"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-at-sign",
+      "kind": "url",
+      "input": "https://bancoestado.cl@evil.example/",
+      "expect_signal_substrings": ["contiene '@'"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-random-looking",
+      "kind": "url",
+      "input": "https://x9k2a1q7z.com/",
+      "expect_signal_substrings": ["generado al azar"],
+      "min_signals": 1
+    },
+    {
+      "id": "url-clean-official",
+      "kind": "url",
+      "input": "https://www.bancoestado.cl/",
+      "expect_signal_substrings": [],
+      "min_signals": 0,
+      "max_signals": 0
+    },
+    {
+      "id": "text-scam-es",
+      "kind": "text",
+      "input": "URGENTE: su paquete retenido en aduana. Pague ahora o se devuelve.",
+      "expect_signal_substrings": ["aduana", "pague ahora", "urgente"],
+      "min_signals": 3
+    },
+    {
+      "id": "text-scam-pt",
+      "kind": "text",
+      "input": "Sua encomenda esta retida. Clique aqui para liberar e pague agora a taxa alfandegaria.",
+      "expect_signal_substrings": ["pague agora"],
+      "min_signals": 1
+    },
+    {
+      "id": "text-clean",
+      "kind": "text",
+      "input": "Hola, te dejo la lista del supermercado para el fin de semana.",
+      "expect_signal_substrings": [],
+      "min_signals": 0,
+      "max_signals": 0
+    }
+  ]
+}

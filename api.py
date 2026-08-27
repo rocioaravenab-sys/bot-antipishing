@@ -15,7 +15,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import config
+from analysis.rules import ruleset_payload
 from analysis.serialize import report_to_dict
+from analysis.version import ENGINE_VERSION, RULES_VERSION
 from pipeline import analyze_image_bytes, analyze_text
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -42,7 +44,17 @@ def _check_key(x_api_key: str | None) -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True}
+    return {"ok": True, "engine_version": ENGINE_VERSION, "rules_version": RULES_VERSION}
+
+
+@app.get("/rules")
+def rules() -> dict:
+    """Reglas de detección (listas + versión) para el motor offline de la app.
+
+    La app las cachea y las usa cuando no hay conexión; así el chequeo local usa
+    exactamente los mismos datos que el servidor. Ver 'analysis/rules.py'.
+    """
+    return ruleset_payload()
 
 
 @app.post("/analyze")

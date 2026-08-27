@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from . import heuristics, threat_intel
+from . import heuristics, rules, threat_intel
 from .phone import PhoneInfo, analyze_phones
-from .url_utils import expand_url, is_shortener, normalize
+from .url_utils import expand_url, get_domain, is_shortener, normalize
 
 # Umbrales de puntuación -> nivel de riesgo.
 RISK_LOW = "BAJO"
 RISK_MEDIUM = "MEDIO"
 RISK_HIGH = "ALTO"
+
+_BLOCKLIST_MARK = "⛔"  # lo ponen las señales de threat intel (lista negra)
 
 
 @dataclass
@@ -20,9 +22,19 @@ class UrlReport:
     signals: list[str] = field(default_factory=list)
     score: int = 0
     expansion_error: str | None = None
+    # Lista blanca: el destino final es un dominio oficial conocido.
+    verified_official: bool = False
+    official_brand: str | None = None
+
+    @property
+    def _blocklisted(self) -> bool:
+        return any(_BLOCKLIST_MARK in s for s in self.signals)
 
     @property
     def risk(self) -> str:
+        # Un dominio oficial verificado no asusta salvo que esté en lista negra.
+        if self.verified_official and not self._blocklisted:
+            return RISK_LOW
         if self.score >= 6:
             return RISK_HIGH
         if self.score >= 3:
@@ -43,7 +55,13 @@ def scan_url(url: str) -> UrlReport:
         if exp.was_redirected:
             report.signals.append(f"Redirige a: {exp.final_url}")
 
-    # 2) Heurísticas sobre la URL original y la final.
+    # 2) Lista blanca: ¿el destino final es un dominio oficial conocido?
+    brand = rules.official_brand_for_domain(get_domain(report.final_url))
+    if brand:
+        report.verified_official = True
+        report.official_brand = brand.get("display") or brand["brand"]
+
+    # 3) Heurísticas sobre la URL original y la final.
     seen = set()
     for candidate in (url, report.final_url):
         for sig in heuristics.analyze_url(candidate):
@@ -52,7 +70,7 @@ def scan_url(url: str) -> UrlReport:
                 report.signals.append(sig)
                 report.score += 2
 
-    # 3) Threat intelligence (si hay claves configuradas).
+    # 4) Threat intelligence (si hay claves configuradas).
     for sig in threat_intel.gather(report.final_url):
         report.signals.append(sig)
         report.score += 5  # una coincidencia en listas negras es contundente
@@ -64,6 +82,36 @@ def scan_urls(urls: list[str]) -> list[UrlReport]:
     return [scan_url(u) for u in urls]
 
 
+def brand_mismatch_signal(ocr_text: str, url_reports: list[UrlReport]) -> str | None:
+    """Señal de suplantación: el texto nombra una marca pero ningún enlace del
+    mensaje lleva a su sitio oficial.
+
+    Solo se evalúa si el mensaje trae al menos una URL (nombrar una marca sin
+    enlace no es, por sí solo, un intento de phishing por enlace).
+    """
+    if not url_reports:
+        return None
+    mentioned = rules.brands_mentioned_in_text(ocr_text)
+    if not mentioned:
+        return None
+
+    final_brands = {
+        (rules.official_brand_for_domain(get_domain(u.final_url)) or {}).get("brand")
+        for u in url_reports
+    }
+    problems = [
+        f"'{b.get('display') or b['brand']}' (su sitio real es {b['official_domains'][0]})"
+        for b in mentioned
+        if b["brand"] not in final_brands
+    ]
+    if not problems:
+        return None
+    return (
+        "El mensaje dice ser de " + ", ".join(problems)
+        + ", pero el enlace NO lleva a ese sitio."
+    )
+
+
 @dataclass
 class MessageReport:
     """Veredicto agregado del mensaje: URLs + remitente + texto."""
@@ -71,10 +119,29 @@ class MessageReport:
     phones: list[PhoneInfo] = field(default_factory=list)
     scam_signal: str | None = None
     scam_score: int = 0
+    brand_signal: str | None = None
+    brand_score: int = 0
+
+    @property
+    def _blocklisted(self) -> bool:
+        return any(u._blocklisted for u in self.urls)
+
+    @property
+    def all_official(self) -> bool:
+        """Todas las URLs del mensaje llevan a un dominio oficial conocido."""
+        return bool(self.urls) and all(u.verified_official for u in self.urls)
+
+    @property
+    def reassurance(self) -> str | None:
+        if not (self.all_official and not self._blocklisted):
+            return None
+        names = sorted({u.official_brand for u in self.urls if u.official_brand})
+        who = names[0] if names else "la entidad"
+        return f"El enlace lleva al sitio oficial de {who}."
 
     @property
     def score(self) -> int:
-        total = self.scam_score
+        total = self.scam_score + self.brand_score
         total += sum(r.score for r in self.urls)
         total += sum(p.score for p in self.phones)
         return total
@@ -82,11 +149,16 @@ class MessageReport:
     @property
     def risk(self) -> str:
         s = self.score
-        if s >= 6:
-            return RISK_HIGH
-        if s >= 3:
-            return RISK_MEDIUM
-        return RISK_LOW
+        raw = RISK_HIGH if s >= 6 else RISK_MEDIUM if s >= 3 else RISK_LOW
+
+        # Guarda de falsos positivos: si TODAS las URLs son oficiales y ninguna
+        # está en lista negra, no alarmar. Si además hay lenguaje de estafa
+        # fuerte, dejar en MEDIO ("el enlace es real, pero el mensaje es raro").
+        if self.all_official and not self._blocklisted:
+            if self.scam_score >= 4:
+                return RISK_MEDIUM if raw == RISK_HIGH else raw
+            return RISK_LOW
+        return raw
 
 
 def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
@@ -99,9 +171,14 @@ def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
         if hits else None
     )
 
+    url_reports = scan_urls(urls)
+    brand_signal = brand_mismatch_signal(ocr_text, url_reports)
+
     return MessageReport(
-        urls=scan_urls(urls),
+        urls=url_reports,
         phones=analyze_phones(ocr_text),
         scam_signal=scam_signal,
         scam_score=scam_score,
+        brand_signal=brand_signal,
+        brand_score=4 if brand_signal else 0,
     )

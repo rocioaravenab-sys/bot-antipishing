@@ -1,0 +1,19 @@
+{
+  "_comment": "Palabras/expresiones de urgencia y cebo típicas de estafa. Se comparan como subcadenas (stems): 'abonad' cubre abonado/abonados. Canónico: este archivo. Consumido por analysis/rules.py y expuesto en GET /rules. 'pt' es conservador a propósito para no cruzar falsos positivos con 'es'.",
+  "es": [
+    "multa", "exceso de velocidad", "pague ahora", "cargos adicionales",
+    "suspendid", "verifica tu cuenta", "urgente", "bloquead", "reembolso",
+    "aduana", "paquete retenido", "última oportunidad", "confirmar datos",
+    "actualiza tus datos", "impuesto", "deuda",
+    "premio", "ganaste", "abonad", "giro de bienvenida", "bono de bienvenida",
+    "nuevos usuarios", "felicidades", "felicitaciones", "has sido seleccionado",
+    "reclama tu", "retira tu", "cobra tu", "recompensa", "saldo a favor",
+    "activa tu cuenta", "regalo", "recarga gratis"
+  ],
+  "pt": [
+    "sua encomenda", "pacote retido", "taxa alfandeg", "alfândega",
+    "pague agora", "última oportunidade", "confirmar dados", "atualize seus dados",
+    "sua conta foi bloqueada", "conta suspensa", "você ganhou", "resgate seu",
+    "clique aqui para liberar", "reembolso disponível", "dívida ativa"
+  ]
+}

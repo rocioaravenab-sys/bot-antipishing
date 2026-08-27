@@ -5,38 +5,11 @@ import re
 
 import tldextract
 
+from .rules import COMMON_TARGETS, SUSPICIOUS_TLDS, scam_keywords
 from .url_utils import get_domain, is_shortener, normalize
 
-# TLDs baratos/abusados frecuentemente en campañas de phishing.
-SUSPICIOUS_TLDS = {
-    "zip", "mov", "xyz", "top", "click", "link", "gq", "cf", "ml", "tk",
-    "ga", "work", "rest", "country", "kim", "loan", "date", "review",
-    "cam", "monster", "quest", "sbs", "cfd", "cc", "icu", "buzz", "best",
-    "bond", "autos", "lol", "beauty", "makeup", "hair", "skin", "mom",
-}
-
-# Marcas/servicios suplantados con frecuencia (para detectar typosquatting).
-COMMON_TARGETS = {
-    "paypal", "correos", "sri", "dhl", "fedex", "netflix", "whatsapp",
-    "banco", "santander", "bbva", "bcp", "interbank", "sunat", "afip",
-    "gob", "gov", "amazon", "mercadolibre", "apple", "icloud", "microsoft",
-    "outlook", "google", "instagram", "facebook", "correo",
-}
-
-# Palabras de urgencia/estafa típicas en el texto del mensaje.
-# Se comparan como subcadenas (stems), p. ej. "abonad" cubre abonado/abonados.
-SCAM_KEYWORDS = [
-    # Multas / entidades / paquetería
-    "multa", "exceso de velocidad", "pague ahora", "cargos adicionales",
-    "suspendid", "verifica tu cuenta", "urgente", "bloquead", "reembolso",
-    "aduana", "paquete retenido", "última oportunidad", "confirmar datos",
-    "actualiza tus datos", "impuesto", "deuda",
-    # Cebo de dinero / bonos / premios ("te abonamos", "giro de bienvenida"…)
-    "premio", "ganaste", "abonad", "giro de bienvenida", "bono de bienvenida",
-    "nuevos usuarios", "felicidades", "felicitaciones", "has sido seleccionado",
-    "reclama tu", "retira tu", "cobra tu", "recompensa", "saldo a favor",
-    "activa tu cuenta", "regalo", "recarga gratis",
-]
+# COMMON_TARGETS y SUSPICIOUS_TLDS ahora viven en 'analysis/data/*.json'
+# (cargados por 'analysis/rules.py'). No los redefinas aquí.
 
 _PUNYCODE_RE = re.compile(r"xn--", re.IGNORECASE)
 _IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
@@ -155,10 +128,14 @@ def analyze_url(url: str) -> list[str]:
     return signals
 
 
-def scam_keyword_hits(text: str) -> list[str]:
-    """Devuelve las palabras/expresiones de estafa encontradas en el texto."""
+def scam_keyword_hits(text: str, langs: tuple[str, ...] | None = ("es",)) -> list[str]:
+    """Devuelve las palabras/expresiones de estafa encontradas en el texto.
+
+    'langs' selecciona los idiomas del diccionario (ver 'analysis/data/scam_keywords.json').
+    Por ahora el default es solo español; la v2.B4 lo ampliará a ('es', 'pt').
+    """
     low = text.lower()
-    return [kw for kw in SCAM_KEYWORDS if kw in low]
+    return [kw for kw in scam_keywords(langs) if kw in low]
 
 
 def analyze_text(text: str) -> list[str]:

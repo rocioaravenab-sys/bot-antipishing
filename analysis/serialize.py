@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from analysis.reporting import REPORT_CHANNELS_CL, build_complaint_text
+from analysis.version import ENGINE_VERSION, RULES_VERSION
 
 if TYPE_CHECKING:
     from analysis.scanner import MessageReport
@@ -12,9 +13,13 @@ if TYPE_CHECKING:
 def report_to_dict(report: "MessageReport") -> dict:
     """Aplana MessageReport/UrlReport/PhoneInfo a un dict serializable."""
     return {
+        "engine_version": ENGINE_VERSION,
+        "rules_version": RULES_VERSION,
         "risk": report.risk,
         "score": report.score,
         "scam_signal": report.scam_signal,
+        "brand_signal": report.brand_signal,
+        "reassurance": report.reassurance,
         "urls": [
             {
                 "url": u.url,
@@ -22,6 +27,8 @@ def report_to_dict(report: "MessageReport") -> dict:
                 "risk": u.risk,
                 "score": u.score,
                 "signals": u.signals,
+                "verified_official": u.verified_official,
+                "official_brand": u.official_brand,
             }
             for u in report.urls
         ],

@@ -1,0 +1,9 @@
+{
+  "_comment": "TLDs baratos/abusados con frecuencia en campañas de phishing. Canónico: este archivo. Consumido por analysis/rules.py y expuesto en GET /rules.",
+  "tlds": [
+    "zip", "mov", "xyz", "top", "click", "link", "gq", "cf", "ml", "tk",
+    "ga", "work", "rest", "country", "kim", "loan", "date", "review",
+    "cam", "monster", "quest", "sbs", "cfd", "cc", "icu", "buzz", "best",
+    "bond", "autos", "lol", "beauty", "makeup", "hair", "skin", "mom"
+  ]
+}
