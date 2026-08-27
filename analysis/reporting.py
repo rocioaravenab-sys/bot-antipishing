@@ -21,7 +21,12 @@ if TYPE_CHECKING:
 DEFAULT_LOG = Path(__file__).resolve().parent.parent / "reportes.jsonl"
 
 # Canales oficiales (Chile). Portales principales; el usuario completa la denuncia.
+# Nota: se evaluó integrar una API en vez de linkear a estos portales, pero ninguno
+# (SUBTEL, SERNAC, PDI) expone un endpoint público para ENVIAR denuncias — solo formularios
+# web. El CSIRT de Gobierno sí tiene una API pública (csirt.gob.cl/api/v1/), pero es de solo
+# lectura (alertas/boletines publicados), no de envío. Verificado 2026-08-27.
 REPORT_CHANNELS_CL = [
+    ("CSIRT de Gobierno — incidentes de ciberseguridad (phishing)", "https://csirt.gob.cl/reportar/"),
     ("SUBTEL — reclamos de telecomunicaciones", "https://www.subtel.gob.cl"),
     ("SERNAC — estafas/consumo", "https://www.sernac.cl"),
     ("PDI Cibercrimen — denuncia de fraude", "https://www.pdichile.cl"),
