@@ -97,6 +97,19 @@ Sube una captura al canal y el bot responderá con el análisis.
 python test_local.py ruta/a/tu/captura.png
 ```
 
+## Tests y evaluación del motor
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q                 # suite unitaria
+python tests/eval.py                # panel precisión/recall sobre tests/corpus/cases.jsonl
+python tests/eval.py --html         # además escribe tests/eval-report.html
+python tests/eval.py --live         # incluye RDAP/TLS/threat intel (no determinista)
+```
+
+El corpus (`tests/corpus/cases.jsonl`) es **sintético** por ahora; reemplázalo con
+casos reales anonimizados para que las métricas sirvan de base a los grants.
+
 ## Threat intelligence (opcional pero recomendado)
 
 Sin claves, el bot funciona solo con heurísticas. Para máxima precisión añade

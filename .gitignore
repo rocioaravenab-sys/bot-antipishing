@@ -4,6 +4,9 @@
 # Datos locales
 reportes.jsonl
 
+# Reporte generado por tests/eval.py
+tests/eval-report.html
+
 # Python
 .venv/
 __pycache__/
