@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -19,6 +19,7 @@ from analysis.rules import ruleset_payload
 from analysis.serialize import report_to_dict
 from analysis.version import ENGINE_VERSION, RULES_VERSION
 from pipeline import analyze_image_bytes, analyze_text
+from ratelimit import RateLimiter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("antiphishing-api")
@@ -35,6 +36,11 @@ app.add_middleware(
 
 _MAX_IMAGE_BYTES = 15 * 1024 * 1024  # 15 MB
 
+# Rate limiting por X-Install-Id (o IP). Se puede desactivar con RATE_LIMIT=false.
+_rl_analyze = RateLimiter(config.RL_ANALYZE_PER_MIN, 60, enabled=config.RATE_LIMIT)
+_rl_text = RateLimiter(config.RL_TEXT_PER_MIN, 60, enabled=config.RATE_LIMIT)
+_rl_rules = RateLimiter(config.RL_RULES_PER_HOUR, 3600, enabled=config.RATE_LIMIT)
+
 
 def _check_key(x_api_key: str | None) -> None:
     """Valida el header X-API-Key si hay una clave configurada."""
@@ -48,21 +54,24 @@ def health() -> dict:
 
 
 @app.get("/rules")
-def rules() -> dict:
+def rules(request: Request) -> dict:
     """Reglas de detección (listas + versión) para el motor offline de la app.
 
     La app las cachea y las usa cuando no hay conexión; así el chequeo local usa
     exactamente los mismos datos que el servidor. Ver 'analysis/rules.py'.
     """
+    _rl_rules.check(request)
     return ruleset_payload()
 
 
 @app.post("/analyze")
 async def analyze(
+    request: Request,
     image: UploadFile = File(...),
     x_api_key: str | None = Header(default=None),
 ) -> dict:
     """Analiza una captura (SMS/correo/mensaje) y devuelve el veredicto."""
+    _rl_analyze.check(request)
     _check_key(x_api_key)
     data = await image.read()
     if not data:
@@ -86,9 +95,11 @@ class TextIn(BaseModel):
 @app.post("/analyze-text")
 def analyze_text_endpoint(
     body: TextIn,
+    request: Request,
     x_api_key: str | None = Header(default=None),
 ) -> dict:
     """Analiza una URL o mensaje en texto plano."""
+    _rl_text.check(request)
     _check_key(x_api_key)
     texto = body.texto.strip()
     if not texto:

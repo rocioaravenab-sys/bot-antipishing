@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from analysis.reporting import REPORT_CHANNELS_CL, build_complaint_text
+from analysis.reporting import build_complaint_text, report_channels
 from analysis.version import ENGINE_VERSION, RULES_VERSION
 
 if TYPE_CHECKING:
@@ -46,6 +46,6 @@ def report_to_dict(report: "MessageReport") -> dict:
         ],
         "report": {
             "complaint_text": build_complaint_text(report),
-            "channels": [list(c) for c in REPORT_CHANNELS_CL],
+            "channels": [list(c) for c in report_channels()],
         },
     }

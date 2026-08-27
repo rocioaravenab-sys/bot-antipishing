@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from . import heuristics, rules, threat_intel
+from . import domain_intel, heuristics, rules, threat_intel
+from .messages_es import t
 from .phone import PhoneInfo, analyze_phones
 from .url_utils import expand_url, get_domain, is_shortener, normalize
 
@@ -53,7 +54,7 @@ def scan_url(url: str) -> UrlReport:
         report.final_url = exp.final_url
         report.expansion_error = exp.error
         if exp.was_redirected:
-            report.signals.append(f"Redirige a: {exp.final_url}")
+            report.signals.append(t("redirects_to", url=exp.final_url))
 
     # 2) Lista blanca: ¿el destino final es un dominio oficial conocido?
     brand = rules.official_brand_for_domain(get_domain(report.final_url))
@@ -70,7 +71,14 @@ def scan_url(url: str) -> UrlReport:
                 report.signals.append(sig)
                 report.score += 2
 
-    # 4) Threat intelligence (si hay claves configuradas).
+    # 4) Intel de dominio: antigüedad (RDAP) + certificado TLS.
+    #    Se salta si la URL ya es oficial verificada (no aporta y ahorra latencia).
+    if not report.verified_official:
+        for sig, weight in domain_intel.gather(get_domain(report.final_url)):
+            report.signals.append(sig)
+            report.score += weight
+
+    # 5) Threat intelligence (si hay claves configuradas).
     for sig in threat_intel.gather(report.final_url):
         report.signals.append(sig)
         report.score += 5  # una coincidencia en listas negras es contundente
@@ -100,16 +108,14 @@ def brand_mismatch_signal(ocr_text: str, url_reports: list[UrlReport]) -> str | 
         for u in url_reports
     }
     problems = [
-        f"'{b.get('display') or b['brand']}' (su sitio real es {b['official_domains'][0]})"
+        t("brand_mismatch_item",
+          display=b.get("display") or b["brand"], domain=b["official_domains"][0])
         for b in mentioned
         if b["brand"] not in final_brands
     ]
     if not problems:
         return None
-    return (
-        "El mensaje dice ser de " + ", ".join(problems)
-        + ", pero el enlace NO lleva a ese sitio."
-    )
+    return t("brand_mismatch", brands=", ".join(problems))
 
 
 @dataclass
@@ -137,7 +143,7 @@ class MessageReport:
             return None
         names = sorted({u.official_brand for u in self.urls if u.official_brand})
         who = names[0] if names else "la entidad"
-        return f"El enlace lleva al sitio oficial de {who}."
+        return t("reassurance_official", who=who)
 
     @property
     def score(self) -> int:
@@ -167,8 +173,7 @@ def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
     # Cada palabra de estafa suma; con 3+ ya alcanza por sí sola nivel ALTO.
     scam_score = min(len(hits), 3) * 2
     scam_signal = (
-        f"El mensaje usa lenguaje típico de estafa: {', '.join(hits[:5])}."
-        if hits else None
+        t("scam_language_msg", hits=", ".join(hits[:5])) if hits else None
     )
 
     url_reports = scan_urls(urls)

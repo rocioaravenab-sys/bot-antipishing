@@ -5,6 +5,7 @@ import re
 
 import tldextract
 
+from .messages_es import t
 from .rules import COMMON_TARGETS, SUSPICIOUS_TLDS, scam_keywords
 from .url_utils import get_domain, is_shortener, normalize
 
@@ -73,28 +74,26 @@ def analyze_url(url: str) -> list[str]:
     ext = tldextract.extract(url)
 
     if is_shortener(url):
-        signals.append(f"Usa un acortador de URLs ({domain}) que oculta el destino real.")
+        signals.append(t("url_shortener", domain=domain))
 
     if _IP_RE.match(ext.domain or "") or _IP_RE.match(domain):
-        signals.append("El enlace apunta a una dirección IP en lugar de un dominio.")
+        signals.append(t("url_ip"))
 
     if _PUNYCODE_RE.search(domain):
-        signals.append("El dominio usa punycode (xn--), técnica común de suplantación visual.")
+        signals.append(t("url_punycode"))
 
     if ext.suffix.split(".")[-1].lower() in SUSPICIOUS_TLDS:
-        signals.append(f"Dominio de nivel superior sospechoso: .{ext.suffix}")
+        signals.append(t("url_bad_tld", suffix=ext.suffix))
 
     if domain.count("-") >= 3:
-        signals.append("El dominio tiene muchos guiones (patrón común en phishing).")
+        signals.append(t("url_many_hyphens"))
 
     if len(domain) > 40:
-        signals.append("Nombre de dominio inusualmente largo.")
+        signals.append(t("url_long"))
 
     core = (ext.domain or "").lower()
     if core and not is_shortener(url) and _looks_random(core):
-        signals.append(
-            f"El dominio '{core}' parece generado al azar (patrón típico de phishing)."
-        )
+        signals.append(t("url_random", core=core))
 
     # Subdominio que imita una marca: p.ej. paypal.seguro-login.com
     labels = domain.split(".")
@@ -105,7 +104,7 @@ def analyze_url(url: str) -> list[str]:
     for target in COMMON_TARGETS:
         if target in labels[:-2]:  # aparece como subdominio, no como dominio raíz
             signals.append(
-                f"Menciona '{target}' en un subdominio; el dominio real es '{ext.domain}.{ext.suffix}'."
+                t("url_subdomain_brand", target=target, real=f"{ext.domain}.{ext.suffix}")
             )
             break
         # Typosquatting: dominio muy parecido pero no igual. Exigimos nombres
@@ -117,22 +116,21 @@ def analyze_url(url: str) -> list[str]:
             and abs(len(core) - len(target)) <= 2
             and 0 < _levenshtein(core, target) <= 2
         ):
-            signals.append(
-                f"El dominio '{core}' se parece mucho a '{target}' (posible typosquatting)."
-            )
+            signals.append(t("url_typosquat", core=core, target=target))
             break
 
     if "@" in url:
-        signals.append("La URL contiene '@' (puede redirigir a un host distinto al que aparenta).")
+        signals.append(t("url_at"))
 
     return signals
 
 
-def scam_keyword_hits(text: str, langs: tuple[str, ...] | None = ("es",)) -> list[str]:
+def scam_keyword_hits(text: str, langs: tuple[str, ...] | None = None) -> list[str]:
     """Devuelve las palabras/expresiones de estafa encontradas en el texto.
 
     'langs' selecciona los idiomas del diccionario (ver 'analysis/data/scam_keywords.json').
-    Por ahora el default es solo español; la v2.B4 lo ampliará a ('es', 'pt').
+    Por defecto se usan todos los idiomas disponibles (hoy 'es' + 'pt'); las
+    expresiones portuguesas son frases largas y no colisionan con el español.
     """
     low = text.lower()
     return [kw for kw in scam_keywords(langs) if kw in low]
@@ -142,5 +140,5 @@ def analyze_text(text: str) -> list[str]:
     """Detecta lenguaje de estafa en el texto OCR del mensaje."""
     hits = scam_keyword_hits(text)
     if hits:
-        return [f"Lenguaje típico de estafa detectado: {', '.join(hits[:5])}."]
+        return [t("scam_language_inline", hits=", ".join(hits[:5]))]
     return []

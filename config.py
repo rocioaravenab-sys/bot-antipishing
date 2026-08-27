@@ -28,9 +28,20 @@ DONATION_URL = os.getenv("DONATION_URL", "https://mpago.la/1UyNrnp").strip()
 # Si se define, /analyze y /analyze-text exigen el header X-API-Key.
 API_KEY = os.getenv("API_KEY", "").strip()
 
+# Rate limiting (token bucket in-process, por X-Install-Id o IP).
+RATE_LIMIT = _get_bool("RATE_LIMIT", True)
+RL_ANALYZE_PER_MIN = _get_int("RL_ANALYZE_PER_MIN", 20)
+RL_TEXT_PER_MIN = _get_int("RL_TEXT_PER_MIN", 60)
+RL_RULES_PER_HOUR = _get_int("RL_RULES_PER_HOUR", 30)
+
 # --- Threat intel (opcionales) ---
 GOOGLE_SAFE_BROWSING_API_KEY = os.getenv("GOOGLE_SAFE_BROWSING_API_KEY", "").strip()
 URLHAUS_AUTH_KEY = os.getenv("URLHAUS_AUTH_KEY", "").strip()
+
+# --- Intel de dominio: antigüedad (RDAP) + certificado TLS ---
+# Sin claves. Se puede apagar si añade demasiada latencia.
+DOMAIN_INTEL = _get_bool("DOMAIN_INTEL", True)
+RDAP_BASE = os.getenv("RDAP_BASE", "https://rdap.org").strip()
 
 # --- Comportamiento ---
 EXPAND_SHORTENERS = _get_bool("EXPAND_SHORTENERS", True)

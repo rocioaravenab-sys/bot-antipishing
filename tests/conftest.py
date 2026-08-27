@@ -3,11 +3,12 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _no_threat_intel_network(monkeypatch):
-    """Neutraliza threat intel (Safe Browsing / URLhaus) en todos los tests.
+def _no_outbound_network(monkeypatch):
+    """Neutraliza las fuentes que salen a la red (threat intel, intel de dominio).
 
-    Los tests que quieran probar threat intel deben re-parchear explícitamente.
+    Los tests que quieran probarlas deben re-parchear explícitamente.
     """
-    from analysis import threat_intel
+    from analysis import domain_intel, threat_intel
 
     monkeypatch.setattr(threat_intel, "gather", lambda *a, **k: [])
+    monkeypatch.setattr(domain_intel, "gather", lambda *a, **k: [])
