@@ -17,6 +17,7 @@ def report_to_dict(report: "MessageReport") -> dict:
         "rules_version": RULES_VERSION,
         "risk": report.risk,
         "score": report.score,
+        "no_content": report.no_content,
         "scam_signal": report.scam_signal,
         "brand_signal": report.brand_signal,
         "reassurance": report.reassurance,

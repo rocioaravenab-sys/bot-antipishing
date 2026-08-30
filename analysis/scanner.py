@@ -127,6 +127,10 @@ class MessageReport:
     scam_score: int = 0
     brand_signal: str | None = None
     brand_score: int = 0
+    # True = la imagen no traía un mensaje/SMS analizable (una foto cualquiera,
+    # o un formato que no se pudo leer). La app lo muestra como "no detecté un
+    # mensaje" en vez de un "es seguro" engañoso o un error.
+    no_content: bool = False
 
     @property
     def _blocklisted(self) -> bool:
