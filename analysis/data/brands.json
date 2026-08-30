@@ -5,7 +5,7 @@
     { "brand": "bancochile", "display": "Banco de Chile", "aliases": ["banco de chile", "banco chile"], "official_domains": ["bancochile.cl"], "category": "bank", "region": "CL" },
     { "brand": "santander", "display": "Santander", "aliases": ["banco santander"], "official_domains": ["santander.cl", "santander.com"], "category": "bank", "region": "CL" },
     { "brand": "bci", "display": "Bci", "aliases": ["banco bci", "banco de credito e inversiones"], "official_domains": ["bci.cl"], "category": "bank", "region": "CL" },
-    { "brand": "scotiabank", "display": "Scotiabank", "aliases": ["banco scotiabank"], "official_domains": ["scotiabank.cl"], "category": "bank", "region": "CL" },
+    { "brand": "scotiabank", "display": "Scotiabank", "aliases": ["banco scotiabank"], "official_domains": ["scotiabankchile.cl", "scotiabank.cl"], "category": "bank", "region": "CL" },
     { "brand": "itau", "display": "Itaú", "aliases": ["banco itau", "itaú"], "official_domains": ["itau.cl"], "category": "bank", "region": "CL" },
     { "brand": "bancofalabella", "display": "Banco Falabella", "aliases": ["banco falabella", "cmr", "cmr falabella"], "official_domains": ["bancofalabella.cl"], "category": "bank", "region": "CL" },
     { "brand": "bancoripley", "display": "Banco Ripley", "aliases": ["banco ripley"], "official_domains": ["bancoripley.cl"], "category": "bank", "region": "CL" },
@@ -15,7 +15,7 @@
     { "brand": "falabella", "display": "Falabella", "aliases": [], "official_domains": ["falabella.com"], "category": "retail", "region": "CL" },
     { "brand": "lider", "display": "Líder", "aliases": ["líder"], "official_domains": ["lider.cl"], "category": "retail", "region": "CL" },
     { "brand": "jumbo", "display": "Jumbo", "aliases": [], "official_domains": ["jumbo.cl"], "category": "retail", "region": "CL" },
-    { "brand": "ripley", "display": "Ripley", "aliases": [], "official_domains": ["ripley.cl"], "category": "retail", "region": "CL" },
+    { "brand": "ripley", "display": "Ripley", "aliases": [], "official_domains": ["ripley.cl", "ripley.com"], "category": "retail", "region": "CL" },
     { "brand": "paris", "display": "Paris", "aliases": [], "official_domains": ["paris.cl"], "category": "retail", "region": "CL" },
 
     { "brand": "enel", "display": "Enel", "aliases": ["enel distribucion", "enel distribución"], "official_domains": ["enel.cl"], "category": "utility", "region": "CL" },
@@ -25,8 +25,8 @@
 
     { "brand": "sii", "display": "SII", "aliases": ["servicio de impuestos internos", "impuestos internos"], "official_domains": ["sii.cl"], "category": "gov", "region": "CL" },
     { "brand": "chileatiende", "display": "ChileAtiende", "aliases": ["chile atiende"], "official_domains": ["chileatiende.gob.cl"], "category": "gov", "region": "CL" },
-    { "brand": "registrocivil", "display": "Registro Civil", "aliases": ["registro civil", "servicio de registro civil"], "official_domains": ["registrocivil.cl"], "category": "gov", "region": "CL" },
-    { "brand": "fonasa", "display": "Fonasa", "aliases": [], "official_domains": ["fonasa.cl"], "category": "gov", "region": "CL" },
+    { "brand": "registrocivil", "display": "Registro Civil", "aliases": ["registro civil", "servicio de registro civil"], "official_domains": ["registrocivil.cl", "srcei.cl"], "category": "gov", "region": "CL" },
+    { "brand": "fonasa", "display": "Fonasa", "aliases": [], "official_domains": ["fonasa.gob.cl", "fonasa.cl"], "category": "gov", "region": "CL" },
     { "brand": "previred", "display": "PreviRed", "aliases": ["previ red"], "official_domains": ["previred.com"], "category": "gov", "region": "CL" },
     { "brand": "claveunica", "display": "ClaveÚnica", "aliases": ["clave unica", "clave única"], "official_domains": ["claveunica.gob.cl"], "category": "gov", "region": "CL" },
     { "brand": "ips", "display": "IPS", "aliases": ["instituto de prevision social", "instituto de previsión social"], "official_domains": ["ips.gob.cl"], "category": "gov", "region": "CL" },
@@ -34,7 +34,7 @@
     { "brand": "chilexpress", "display": "Chilexpress", "aliases": ["chile express"], "official_domains": ["chilexpress.cl"], "category": "courier", "region": "CL" },
     { "brand": "starken", "display": "Starken", "aliases": [], "official_domains": ["starken.cl"], "category": "courier", "region": "CL" },
     { "brand": "correoschile", "display": "Correos de Chile", "aliases": ["correos de chile", "correoschile"], "official_domains": ["correos.cl"], "category": "courier", "region": "CL" },
-    { "brand": "blueexpress", "display": "Blue Express", "aliases": ["blue express", "bluex"], "official_domains": ["blue.cl", "blueexpress.cl"], "category": "courier", "region": "CL" },
+    { "brand": "blueexpress", "display": "Blue Express", "aliases": ["blue express", "bluex"], "official_domains": ["blue.cl", "bluex.cl"], "category": "courier", "region": "CL" },
 
     { "brand": "paypal", "display": "PayPal", "aliases": [], "official_domains": ["paypal.com"], "category": "fintech", "region": "generic" },
     { "brand": "mercadolibre", "display": "Mercado Libre", "aliases": ["mercado libre", "mercadopago", "mercado pago"], "official_domains": ["mercadolibre.cl", "mercadolibre.com", "mercadopago.cl", "mercadopago.com"], "category": "fintech", "region": "generic" },
