@@ -1,6 +1,7 @@
 """Heurísticas locales de detección de phishing (sin llamadas externas)."""
 from __future__ import annotations
 
+import ipaddress
 import re
 
 import tldextract
@@ -16,6 +17,19 @@ _PUNYCODE_RE = re.compile(r"xn--", re.IGNORECASE)
 _IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 _VOWELS = set("aeiou")
 
+# Peso de cada señal de URL para el scoring (ver analysis/scanner.py:
+# MEDIO = score >= 3, ALTO = score >= 6).
+#
+# Casi todas las señales pesan 2: por sí solas no bastan para "sospechoso".
+# Un puñado de señales de ALTA CONFIANZA pesan 3 —una sola ya justifica MEDIO—
+# porque en un mensaje de consumo casi nunca aparecen de forma legítima:
+#   * enlace a una IP pública en vez de a un dominio
+#   * dominio con punycode (xn--), típico de ataques homográficos
+#   * TLD de la lista de abuso (.top / .xyz / .monster …)
+#   * dominio con letras y dígitos intercalados (x7k2a9q1z4), firma de DGA
+DEFAULT_SIGNAL_WEIGHT = 2
+HIGH_CONFIDENCE_WEIGHT = 3
+
 
 def _longest_consonant_run(s: str) -> int:
     """Longitud de la racha más larga de consonantes seguidas."""
@@ -27,6 +41,35 @@ def _longest_consonant_run(s: str) -> int:
         else:
             run = 0
     return best
+
+
+def _is_private_ip(host: str) -> bool:
+    """True si 'host' es una IP no enrutable en internet (LAN, loopback,
+    enlace local…). Un enlace a 192.168.x.x / 10.x / 127.0.0.1 es una
+    dirección de red local, no infraestructura de phishing: la señal se emite
+    igual (sigue siendo raro en un mensaje), pero no cuenta como alta confianza.
+    """
+    try:
+        return not ipaddress.ip_address(host).is_global
+    except ValueError:
+        return False
+
+
+def _looks_generated(core: str) -> bool:
+    """Firma de nombre generado por máquina (DGA): letras y dígitos
+    intercalados, p. ej. 'x7k2a9q1z4'. No marca un año pegado a una palabra
+    ('taller2024') ni un prefijo numérico ('24horas'), donde los dígitos van
+    en un solo bloque.
+    """
+    digits = sum(c.isdigit() for c in core)
+    letters = sum(c.isalpha() for c in core)
+    if digits < 2 or letters < 2:
+        return False
+    transitions = sum(
+        1 for a, b in zip(core, core[1:])
+        if a.isalnum() and b.isalnum() and a.isdigit() != b.isdigit()
+    )
+    return transitions >= 4
 
 
 def _looks_random(core: str) -> bool:
@@ -66,46 +109,58 @@ def _levenshtein(a: str, b: str) -> int:
     return prev[-1]
 
 
-def analyze_url(url: str) -> list[str]:
-    """Devuelve una lista de señales sospechosas encontradas en la URL."""
-    signals: list[str] = []
+def _url_signals(url: str) -> list[tuple[str, int]]:
+    """(texto de la señal, peso) de cada patrón sospechoso de la URL, en orden.
+
+    Única ruta de detección: 'analyze_url' descarta el peso y 'analyze_url_signals'
+    lo conserva para el scoring.
+    """
+    out: list[tuple[str, int]] = []
     url = normalize(url)
     domain = get_domain(url)
     ext = tldextract.extract(url)
 
-    if is_shortener(url):
-        signals.append(t("url_shortener", domain=domain))
+    def add(key: str, weight: int = DEFAULT_SIGNAL_WEIGHT, **kw) -> None:
+        out.append((t(key, **kw), weight))
 
-    if _IP_RE.match(ext.domain or "") or _IP_RE.match(domain):
-        signals.append(t("url_ip"))
+    if is_shortener(url):
+        add("url_shortener", domain=domain)
+
+    ip_host = (ext.domain or "") if _IP_RE.match(ext.domain or "") else (
+        domain if _IP_RE.match(domain) else "")
+    if ip_host:
+        # Una IP privada/loopback es red local, no infraestructura de phishing.
+        add("url_ip", DEFAULT_SIGNAL_WEIGHT if _is_private_ip(ip_host)
+            else HIGH_CONFIDENCE_WEIGHT)
 
     if _PUNYCODE_RE.search(domain):
-        signals.append(t("url_punycode"))
+        add("url_punycode", HIGH_CONFIDENCE_WEIGHT)
 
     if ext.suffix.split(".")[-1].lower() in SUSPICIOUS_TLDS:
-        signals.append(t("url_bad_tld", suffix=ext.suffix))
+        add("url_bad_tld", HIGH_CONFIDENCE_WEIGHT, suffix=ext.suffix)
 
     if domain.count("-") >= 3:
-        signals.append(t("url_many_hyphens"))
+        add("url_many_hyphens")
 
     if len(domain) > 40:
-        signals.append(t("url_long"))
+        add("url_long")
 
     core = (ext.domain or "").lower()
     if core and not is_shortener(url) and _looks_random(core):
-        signals.append(t("url_random", core=core))
+        # Solo es alta confianza si además es letras+dígitos intercalados (DGA);
+        # 'chilexpress' o '24horas' disparan _looks_random pero no son phishing.
+        add("url_random",
+            HIGH_CONFIDENCE_WEIGHT if _looks_generated(core) else DEFAULT_SIGNAL_WEIGHT,
+            core=core)
 
     # Subdominio que imita una marca: p.ej. paypal.seguro-login.com
     labels = domain.split(".")
-    core = (ext.domain or "").lower()
     # No evaluamos typosquatting sobre acortadores conocidos (bit.ly, t.co…),
     # cuyo dominio corto genera falsos positivos (bit≈bcp, etc.).
     check_targets = not is_shortener(url)
     for target in COMMON_TARGETS:
         if target in labels[:-2]:  # aparece como subdominio, no como dominio raíz
-            signals.append(
-                t("url_subdomain_brand", target=target, real=f"{ext.domain}.{ext.suffix}")
-            )
+            add("url_subdomain_brand", target=target, real=f"{ext.domain}.{ext.suffix}")
             break
         # Typosquatting: dominio muy parecido pero no igual. Exigimos nombres
         # de longitud razonable y similar para evitar coincidencias espurias.
@@ -116,13 +171,26 @@ def analyze_url(url: str) -> list[str]:
             and abs(len(core) - len(target)) <= 2
             and 0 < _levenshtein(core, target) <= 2
         ):
-            signals.append(t("url_typosquat", core=core, target=target))
+            add("url_typosquat", core=core, target=target)
             break
 
     if "@" in url:
-        signals.append(t("url_at"))
+        add("url_at")
 
-    return signals
+    return out
+
+
+def analyze_url_signals(url: str) -> list[tuple[str, int]]:
+    """Señales sospechosas de la URL con su peso para el scoring (ver scanner).
+
+    Casi todas pesan 2; las de alta confianza pesan 3 —una sola ya alcanza MEDIO.
+    """
+    return _url_signals(url)
+
+
+def analyze_url(url: str) -> list[str]:
+    """Devuelve una lista de señales sospechosas encontradas en la URL."""
+    return [sig for sig, _weight in _url_signals(url)]
 
 
 def scam_keyword_hits(text: str, langs: tuple[str, ...] | None = None) -> list[str]:

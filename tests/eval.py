@@ -31,9 +31,11 @@ CLASSES = ["BAJO", "MEDIO", "ALTO"]
 
 # Umbrales mínimos aceptables (modo determinista, corpus actual). Se gatea solo
 # sobre lo que más importa: detectar el phishing (recall ALTO) y no asustar sin
-# motivo (falsos positivos en ham). El recall de MEDIO NO se gatea: hoy es bajo
-# porque una sola señal heurística suma 2 y MEDIO necesita 3 — es una brecha
-# conocida del scoring, candidata a una pasada de tuning aparte.
+# motivo (falsos positivos en ham). El recall de MEDIO NO se gatea: tras subir a
+# 3 el peso de las señales de alta confianza (IP pública, punycode, TLD abusado,
+# dominio DGA) el hueco se cerró casi del todo; lo que queda —una sola señal de
+# baja confianza, p. ej. "muchos guiones"— se deja a propósito en BAJO para no
+# marcar dominios legítimos con guiones (ver casos ham del corpus).
 THRESHOLDS = {
     "alto_recall": 0.85,      # de los phishing reales, cuántos detecta como ALTO
     "ham_false_positive": 0.15,  # de los BAJO reales, cuántos sube de nivel (crying wolf)

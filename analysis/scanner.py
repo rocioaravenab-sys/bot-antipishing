@@ -62,14 +62,16 @@ def scan_url(url: str) -> UrlReport:
         report.verified_official = True
         report.official_brand = brand.get("display") or brand["brand"]
 
-    # 3) Heurísticas sobre la URL original y la final.
+    # 3) Heurísticas sobre la URL original y la final. Cada señal trae su peso:
+    #    la mayoría suma 2; las de alta confianza suman 3 (una sola ya es MEDIO).
+    #    Ver heuristics.analyze_url_signals.
     seen = set()
     for candidate in (url, report.final_url):
-        for sig in heuristics.analyze_url(candidate):
+        for sig, weight in heuristics.analyze_url_signals(candidate):
             if sig not in seen:
                 seen.add(sig)
                 report.signals.append(sig)
-                report.score += 2
+                report.score += weight
 
     # 4) Intel de dominio: antigüedad (RDAP) + certificado TLS.
     #    Se salta si la URL ya es oficial verificada (no aporta y ahorra latencia).

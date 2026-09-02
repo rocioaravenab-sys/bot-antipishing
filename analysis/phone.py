@@ -30,9 +30,14 @@ _TYPE_NAMES = {
 }
 
 # Tipos de línea que no corresponden a un remitente institucional legítimo.
+# Es una señal DE APOYO, no concluyente: montones de envíos legítimos (promos de
+# tiendas, pasarelas de SMS masivo, WhatsApp Business, Twilio…) salen de números
+# que libphonenumber marca como VOIP. Por eso ningún tipo llega solo a 3 (= MEDIO):
+# suma con el lenguaje de estafa o con un enlace sospechoso, pero no alarma por
+# sí mismo. Ver analysis/scanner.py (MEDIO = score >= 3).
 _SUSPICIOUS_TYPES = {
-    PhoneNumberType.VOIP: 3,
-    PhoneNumberType.PREMIUM_RATE: 3,
+    PhoneNumberType.VOIP: 2,
+    PhoneNumberType.PREMIUM_RATE: 2,
     PhoneNumberType.FIXED_LINE: 2,
     PhoneNumberType.FIXED_LINE_OR_MOBILE: 1,
     PhoneNumberType.PERSONAL_NUMBER: 2,

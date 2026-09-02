@@ -89,8 +89,12 @@ def _join_wrapped_urls(text: str) -> str:
 
 
 def _looks_like_real_domain(candidate: str) -> bool:
-    """Filtra basura del OCR: exige un TLD real (según la Public Suffix List)."""
+    """Filtra basura del OCR: exige un TLD real (según la Public Suffix List),
+    o bien un host que sea una IP literal — un enlace a IP es señal de phishing
+    y debe llegar al análisis, no descartarse aquí."""
     ext = tldextract.extract(candidate)
+    if ext.ipv4:
+        return True
     if not (ext.domain and ext.suffix):
         return False
     # Descarta acortadores con código ausente o demasiado corto (p. ej.
