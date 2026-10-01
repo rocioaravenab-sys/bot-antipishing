@@ -216,7 +216,7 @@ def _ask_anthropic(user: str) -> _AiOutput:
     try:
         response = _client().messages.parse(
             model=config.AI_MODEL,
-            max_tokens=512,
+            max_tokens=config.AI_MAX_TOKENS,
             system=_SYSTEM,
             messages=[{"role": "user", "content": user}],
             output_format=_AiOutput,
@@ -279,8 +279,7 @@ def _ask_openai_compat(user: str) -> _AiOutput:
             {"role": "user", "content": user},
         ],
         "temperature": 0,
-        # Holgura para modelos que "piensan" antes de responder.
-        "max_tokens": 1024,
+        "max_tokens": config.AI_MAX_TOKENS,
     }
     if config.AI_JSON_MODE:
         body["response_format"] = {"type": "json_object"}

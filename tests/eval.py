@@ -21,6 +21,7 @@ import argparse
 import html
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # ejecutable como script
@@ -60,19 +61,41 @@ def load_cases(include_ai: bool = False) -> list[dict]:
     return cases
 
 
-def predict(case: dict) -> str:
+# Con --ai: pausa entre casos y reintentos, para no chocar con el límite por
+# minuto de los planes gratuitos (el clasificador es fail-safe: ante un 429
+# devuelve "sin IA", lo que falsearía la medición).
+AI_PACE_SECONDS = 6
+AI_RETRIES = 4
+AI_RETRY_WAIT = 20
+ai_unanswered: list[str] = []
+
+
+def _analyze(case: dict):
     if case["kind"] == "image":
-        data = (CORPUS.parent / case["image_path"]).read_bytes()
-        return analyze_image_bytes(data).risk
-    return analyze_text(case["input"]).risk
+        return analyze_image_bytes((CORPUS.parent / case["image_path"]).read_bytes())
+    return analyze_text(case["input"])
 
 
-def confusion(cases: list[dict]) -> tuple[dict, list[dict]]:
+def predict(case: dict, ai_on: bool = False) -> str:
+    report = _analyze(case)
+    if ai_on:
+        for _ in range(AI_RETRIES):
+            if report.ai is not None:
+                break
+            time.sleep(AI_RETRY_WAIT)
+            report = _analyze(case)
+        if report.ai is None:
+            ai_unanswered.append(case["id"])
+        time.sleep(AI_PACE_SECONDS)
+    return report.risk
+
+
+def confusion(cases: list[dict], ai_on: bool = False) -> tuple[dict, list[dict]]:
     matrix = {a: {p: 0 for p in CLASSES} for a in CLASSES}
     rows = []
     for c in cases:
         exp = c["expected_risk"]
-        got = predict(c)
+        got = predict(c, ai_on)
         matrix[exp][got] += 1
         rows.append({"id": c["id"], "expected": exp, "got": got, "ok": exp == got})
     return matrix, rows
@@ -191,7 +214,7 @@ def run(live: bool, want_html: bool, ai: bool = False) -> bool:
             print("⚠️  --ai sin IA configurada en .env: se evalúa sin IA.")
 
     cases = load_cases(include_ai=ai_on)
-    matrix, rows = confusion(cases)
+    matrix, rows = confusion(cases, ai_on)
     m = metrics(matrix)
     passed = (
         m["alto_recall"] >= THRESHOLDS["alto_recall"]
@@ -199,6 +222,9 @@ def run(live: bool, want_html: bool, ai: bool = False) -> bool:
         and m["accuracy"] >= THRESHOLDS["accuracy"]
     )
     print_report(matrix, m, rows, passed)
+    if ai_unanswered:
+        print(f"⚠️  La IA no respondió en {len(ai_unanswered)} caso(s) "
+              f"(evaluados sin IA): {', '.join(ai_unanswered)}")
     if want_html:
         write_html(matrix, m, rows, passed)
     return passed

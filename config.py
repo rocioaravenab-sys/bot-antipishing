@@ -63,6 +63,9 @@ AI_MODEL = os.getenv("AI_MODEL", "").strip() or (
     else "claude-haiku-4-5"
 )
 AI_TIMEOUT = _get_int("AI_TIMEOUT", 8)
+# Tope de tokens de la respuesta (~90 reales). Los planes gratuitos descuentan
+# esta reserva del límite por minuto: con 1024, Groq free (1000/min) rechaza todo.
+AI_MAX_TOKENS = _get_int("AI_MAX_TOKENS", 300)
 
 # --- Comportamiento ---
 EXPAND_SHORTENERS = _get_bool("EXPAND_SHORTENERS", True)
