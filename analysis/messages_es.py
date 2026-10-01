@@ -29,6 +29,8 @@ _M: dict[str, str] = {
     "brand_mismatch": "El mensaje dice ser de {brands}, pero el enlace NO lleva a ese sitio.",
     "brand_mismatch_item": "'{display}' (su sitio real es {domain})",
     "reassurance_official": "El enlace lleva al sitio oficial de {who}.",
+    # --- ai_classifier --------------------------------------------------
+    "ai_signal": "Análisis con IA: {explanation}",
 }
 
 

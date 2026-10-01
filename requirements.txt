@@ -19,3 +19,7 @@ pyzbar>=0.1.9              # requiere 'zbar' instalado en el sistema
 requests>=2.31.0
 tldextract>=5.0.0
 phonenumbers>=8.13.0       # validación del número remitente (tipo de línea, región)
+
+# Clasificador de smishing con IA — solo para el proveedor Claude; Qwen y
+# demás APIs compatibles con OpenAI usan 'requests'
+anthropic>=1.9.0

@@ -61,6 +61,7 @@ def log_evidence(report: "MessageReport", path: Path = DEFAULT_LOG) -> dict:
             {"url": r.url, "final_url": r.final_url} for r in report.urls
         ],
         "scam_signal": report.scam_signal,
+        "ai_signal": report.ai_signal,
     }
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -91,6 +92,8 @@ def build_complaint_text(report: "MessageReport") -> str:
         signals.append(report.scam_signal)
     if report.brand_signal:
         signals.append(report.brand_signal)
+    if report.ai_signal:
+        signals.append(report.ai_signal)
     for p in report.phones:
         signals.extend(p.signals)
     for r in report.urls:

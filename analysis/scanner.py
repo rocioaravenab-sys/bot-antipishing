@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from . import domain_intel, heuristics, rules, threat_intel
+from . import ai_classifier, domain_intel, heuristics, rules, threat_intel
+from .ai_classifier import AiVerdict
 from .messages_es import t
 from .phone import PhoneInfo, analyze_phones
 from .url_utils import expand_url, get_domain, is_shortener, normalize
@@ -129,6 +130,8 @@ class MessageReport:
     scam_score: int = 0
     brand_signal: str | None = None
     brand_score: int = 0
+    # Veredicto del clasificador IA (None = apagado o no disponible).
+    ai: AiVerdict | None = None
     # True = la imagen no traía un mensaje/SMS analizable (una foto cualquiera,
     # o un formato que no se pudo leer). La app lo muestra como "no detecté un
     # mensaje" en vez de un "es seguro" engañoso o un error.
@@ -152,8 +155,18 @@ class MessageReport:
         return t("reassurance_official", who=who)
 
     @property
+    def ai_score(self) -> int:
+        return self.ai.score if self.ai else 0
+
+    @property
+    def ai_signal(self) -> str | None:
+        if not (self.ai and self.ai_score):
+            return None
+        return t("ai_signal", explanation=self.ai.explanation)
+
+    @property
     def score(self) -> int:
-        total = self.scam_score + self.brand_score
+        total = self.scam_score + self.brand_score + self.ai_score
         total += sum(r.score for r in self.urls)
         total += sum(p.score for p in self.phones)
         return total
@@ -165,9 +178,9 @@ class MessageReport:
 
         # Guarda de falsos positivos: si TODAS las URLs son oficiales y ninguna
         # está en lista negra, no alarmar. Si además hay lenguaje de estafa
-        # fuerte, dejar en MEDIO ("el enlace es real, pero el mensaje es raro").
+        # fuerte (keywords o la IA muy segura), dejar en MEDIO ("el enlace es real, pero el mensaje es raro").
         if self.all_official and not self._blocklisted:
-            if self.scam_score >= 4:
+            if self.scam_score >= 4 or self.ai_score >= 4:
                 return RISK_MEDIUM if raw == RISK_HIGH else raw
             return RISK_LOW
         return raw
@@ -192,4 +205,5 @@ def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
         scam_score=scam_score,
         brand_signal=brand_signal,
         brand_score=4 if brand_signal else 0,
+        ai=ai_classifier.classify(ocr_text),
     )

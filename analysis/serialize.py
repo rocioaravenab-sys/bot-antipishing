@@ -21,6 +21,19 @@ def report_to_dict(report: "MessageReport") -> dict:
         "scam_signal": report.scam_signal,
         "brand_signal": report.brand_signal,
         "reassurance": report.reassurance,
+        "ai_signal": report.ai_signal,
+        "ai": (
+            {
+                "is_smishing": report.ai.is_smishing,
+                "confidence": report.ai.confidence,
+                "tactics": list(report.ai.tactics),
+                "explanation": report.ai.explanation,
+                "score": report.ai_score,
+                "model": report.ai.model,
+            }
+            if report.ai
+            else None
+        ),
         "urls": [
             {
                 "url": u.url,

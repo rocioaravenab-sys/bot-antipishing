@@ -28,9 +28,10 @@ def analyze_image_bytes(data: bytes) -> MessageReport:
 
     all_urls = list(dict.fromkeys(qr_urls + ocr_urls))  # únicas, en orden
     report = scan_message(all_urls, ocr_text)
-    # Ni enlaces, ni QR, ni remitente, ni lenguaje de estafa: la imagen no traía
-    # un mensaje/SMS que revisar.
-    if not report.urls and not report.phones and not report.scam_signal:
+    # Ni enlaces, ni QR, ni remitente, ni lenguaje de estafa (ni la IA lo vio
+    # como estafa): la imagen no traía un mensaje/SMS que revisar.
+    if (not report.urls and not report.phones and not report.scam_signal
+            and not report.ai_score):
         report.no_content = True
     return report
 

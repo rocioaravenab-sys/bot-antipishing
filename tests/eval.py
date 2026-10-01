@@ -4,8 +4,11 @@ Uso:
     python tests/eval.py                # determinista (sin red): heurísticas + marcas + texto
     python tests/eval.py --live         # además consulta RDAP/TLS/threat intel
     python tests/eval.py --html         # escribe tests/eval-report.html
+    python tests/eval.py --ai           # además usa el clasificador IA (requiere
+                                        # configurarla en .env; gasta cuota: 1 llamada/caso)
 
-Corpus: tests/corpus/cases.jsonl  ({id, kind, input|image_path, lang, expected_risk, notes}).
+Corpus: tests/corpus/cases.jsonl  ({id, kind, input|image_path, lang, expected_risk, notes,
+requires_ai?}).
 Los casos actuales son SINTÉTICOS y realistas para Chile; reemplázalos/añade casos
 reales anonimizados del taller para que las métricas sirvan de verdad.
 
@@ -43,12 +46,17 @@ THRESHOLDS = {
 }
 
 
-def load_cases() -> list[dict]:
+def load_cases(include_ai: bool = False) -> list[dict]:
+    """Casos del corpus. Los marcados 'requires_ai' (fraudes sin enlace ni
+    palabras clave, que solo un LLM detecta) se incluyen únicamente con --ai,
+    para que la línea base determinista y el gate de CI no cambien."""
     cases = []
     for line in CORPUS.read_text("utf-8").splitlines():
         line = line.strip()
         if line and not line.startswith("//"):
-            cases.append(json.loads(line))
+            case = json.loads(line)
+            if include_ai or not case.get("requires_ai"):
+                cases.append(case)
     return cases
 
 
@@ -169,11 +177,20 @@ def write_html(matrix: dict, m: dict, rows: list[dict], passed: bool) -> None:
     print(f"\nHTML -> {HTML_OUT}")
 
 
-def run(live: bool, want_html: bool) -> bool:
+def run(live: bool, want_html: bool, ai: bool = False) -> bool:
     if not live:
         config.DOMAIN_INTEL = False  # determinista: sin RDAP/TLS
+    config.AI_CLASSIFIER = ai  # la IA solo se mide si se pide explícitamente
+    ai_on = False
+    if ai:
+        from analysis import ai_classifier
+        ai_on = ai_classifier.enabled()
+        if ai_on:
+            print(f"IA: {ai_classifier.provider()} · {config.AI_MODEL}")
+        else:
+            print("⚠️  --ai sin IA configurada en .env: se evalúa sin IA.")
 
-    cases = load_cases()
+    cases = load_cases(include_ai=ai_on)
     matrix, rows = confusion(cases)
     m = metrics(matrix)
     passed = (
@@ -191,8 +208,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="consulta RDAP/TLS/threat intel")
     ap.add_argument("--html", action="store_true", help="escribe tests/eval-report.html")
+    ap.add_argument("--ai", action="store_true", help="usa el clasificador IA (Qwen/Claude)")
     args = ap.parse_args()
-    sys.exit(0 if run(args.live, args.html) else 1)
+    sys.exit(0 if run(args.live, args.html, args.ai) else 1)
 
 
 if __name__ == "__main__":

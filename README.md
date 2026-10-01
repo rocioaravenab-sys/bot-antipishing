@@ -105,6 +105,7 @@ python -m pytest -q                 # suite unitaria
 python tests/eval.py                # panel precisión/recall sobre tests/corpus/cases.jsonl
 python tests/eval.py --html         # además escribe tests/eval-report.html
 python tests/eval.py --live         # incluye RDAP/TLS/threat intel (no determinista)
+python tests/eval.py --ai           # incluye el clasificador IA (requiere AI_BASE_URL+AI_MODEL o ANTHROPIC_API_KEY)
 ```
 
 El corpus (`tests/corpus/cases.jsonl`) es **sintético** por ahora; reemplázalo con
@@ -117,6 +118,25 @@ en `.env`:
 
 - **Google Safe Browsing** — <https://developers.google.com/safe-browsing>
 - **URLhaus (abuse.ch)** — <https://urlhaus.abuse.ch/api/>
+
+## Clasificador de smishing con IA (opcional)
+
+`analysis/ai_classifier.py` le pide a un LLM que juzgue el texto del mensaje y
+devuelva, con un esquema JSON fijo: si es smishing, la confianza, las tácticas
+(urgencia, suplantación, pide dinero/datos, cambio de número…) y una explicación
+simple. Dos proveedores (ver `.env.example`):
+
+- **Qwen u otro modelo** por una API compatible con OpenAI (Alibaba Model
+  Studio, Groq, OpenRouter, Ollama): `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL`.
+- **Claude**: solo `ANTHROPIC_API_KEY` (por defecto `claude-haiku-4-5`).
+
+Es **una señal más** del veredicto:
+
+- confianza `alta` suma 4 (sola = MEDIO; con otra señal = ALTO), `media` suma 2,
+  `baja` o "no es smishing" suman 0. **Nunca resta**.
+- Si la API falla o tarda más de `AI_TIMEOUT` s, el análisis sigue sin IA.
+- Se ocultan teléfonos, RUT y correos antes de enviar el texto.
+- La respuesta de la API trae `ai` (detalle) y `ai_signal` (frase para mostrar).
 
 ## Próximos pasos sugeridos
 

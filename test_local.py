@@ -51,6 +51,11 @@ def main() -> None:
 
     if report.scam_signal:
         print("\n=== Texto ===\n  -", report.scam_signal)
+    if report.ai:
+        print(f"\n=== IA ({report.ai.model}) ===")
+        print(f"  smishing={report.ai.is_smishing} confianza={report.ai.confidence} "
+              f"tácticas={', '.join(report.ai.tactics) or '-'} (+{report.ai_score})")
+        print("  -", report.ai.explanation)
 
     print(f"\n=== VEREDICTO: {report.risk} (score total {report.score}) ===")
 
