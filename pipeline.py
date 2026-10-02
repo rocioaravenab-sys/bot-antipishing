@@ -10,7 +10,7 @@ from extractors.ocr import extract_urls_from_image, find_urls_in_text
 from extractors.qr import extract_qr_urls
 
 
-def analyze_image_bytes(data: bytes) -> MessageReport:
+def analyze_image_bytes(data: bytes, ai_consent: bool = False) -> MessageReport:
     """Extrae URLs (QR + OCR) de una imagen y devuelve el veredicto del mensaje.
 
     Si la imagen no se puede leer (formato no soportado, p. ej. HEIC de la
@@ -27,7 +27,7 @@ def analyze_image_bytes(data: bytes) -> MessageReport:
         return MessageReport(no_content=True)
 
     all_urls = list(dict.fromkeys(qr_urls + ocr_urls))  # únicas, en orden
-    report = scan_message(all_urls, ocr_text)
+    report = scan_message(all_urls, ocr_text, use_ai=ai_consent)
     # Ni enlaces, ni QR, ni remitente, ni lenguaje de estafa (ni la IA lo vio
     # como estafa): la imagen no traía un mensaje/SMS que revisar.
     if (not report.urls and not report.phones and not report.scam_signal
@@ -36,7 +36,11 @@ def analyze_image_bytes(data: bytes) -> MessageReport:
     return report
 
 
-def analyze_text(texto: str) -> MessageReport:
-    """Analiza una URL o mensaje en texto plano."""
+def analyze_text(texto: str, ai_consent: bool = False) -> MessageReport:
+    """Analiza una URL o mensaje en texto plano.
+
+    'ai_consent': la persona aceptó en la app el análisis con IA externa. Solo
+    entonces el texto (redactado) sale hacia el proveedor de IA.
+    """
     urls = find_urls_in_text(texto)
-    return scan_message(urls, texto)
+    return scan_message(urls, texto, use_ai=ai_consent)

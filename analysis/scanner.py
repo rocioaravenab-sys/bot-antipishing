@@ -186,8 +186,12 @@ class MessageReport:
         return raw
 
 
-def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
-    """Analiza el mensaje completo: URLs + número remitente + texto OCR."""
+def scan_message(urls: list[str], ocr_text: str = "", use_ai: bool = False) -> MessageReport:
+    """Analiza el mensaje completo: URLs + número remitente + texto OCR.
+
+    'use_ai' = la persona aceptó que el texto se envíe al servicio externo de IA.
+    Sin ese consentimiento el clasificador IA no se consulta (ver api.py).
+    """
     hits = heuristics.scam_keyword_hits(ocr_text)
     # Cada palabra de estafa suma; con 3+ ya alcanza por sí sola nivel ALTO.
     scam_score = min(len(hits), 3) * 2
@@ -205,5 +209,5 @@ def scan_message(urls: list[str], ocr_text: str = "") -> MessageReport:
         scam_score=scam_score,
         brand_signal=brand_signal,
         brand_score=4 if brand_signal else 0,
-        ai=ai_classifier.classify(ocr_text),
+        ai=ai_classifier.classify(ocr_text) if use_ai else None,
     )

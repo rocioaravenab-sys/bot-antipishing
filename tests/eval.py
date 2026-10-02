@@ -70,20 +70,22 @@ AI_RETRY_WAIT = 20
 ai_unanswered: list[str] = []
 
 
-def _analyze(case: dict):
+def _analyze(case: dict, ai_on: bool = False):
+    # El corpus es propio (sintético/anonimizado): con --ai se da el consentimiento.
     if case["kind"] == "image":
-        return analyze_image_bytes((CORPUS.parent / case["image_path"]).read_bytes())
-    return analyze_text(case["input"])
+        return analyze_image_bytes(
+            (CORPUS.parent / case["image_path"]).read_bytes(), ai_consent=ai_on)
+    return analyze_text(case["input"], ai_consent=ai_on)
 
 
 def predict(case: dict, ai_on: bool = False) -> str:
-    report = _analyze(case)
+    report = _analyze(case, ai_on)
     if ai_on:
         for _ in range(AI_RETRIES):
             if report.ai is not None:
                 break
             time.sleep(AI_RETRY_WAIT)
-            report = _analyze(case)
+            report = _analyze(case, ai_on)
         if report.ai is None:
             ai_unanswered.append(case["id"])
         time.sleep(AI_PACE_SECONDS)

@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import config
+from analysis import ai_classifier
 from analysis.rules import ruleset_payload
 from analysis.serialize import report_to_dict
 from analysis.version import ENGINE_VERSION, RULES_VERSION
@@ -42,6 +43,13 @@ _rl_text = RateLimiter(config.RL_TEXT_PER_MIN, 60, enabled=config.RATE_LIMIT)
 _rl_rules = RateLimiter(config.RL_RULES_PER_HOUR, 3600, enabled=config.RATE_LIMIT)
 
 
+def _ai_consent(x_ai_consent: str | None) -> bool:
+    """La app envía 'X-AI-Consent: 1' solo si la persona aceptó el análisis con
+    IA externa. Sin el header (apps antiguas, otros clientes) no se consulta la
+    IA: el texto no sale de este servidor."""
+    return (x_ai_consent or "").strip() == "1"
+
+
 def _check_key(x_api_key: str | None) -> None:
     """Valida el header X-API-Key si hay una clave configurada."""
     if config.API_KEY and x_api_key != config.API_KEY:
@@ -50,7 +58,13 @@ def _check_key(x_api_key: str | None) -> None:
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True, "engine_version": ENGINE_VERSION, "rules_version": RULES_VERSION}
+    return {
+        "ok": True,
+        "engine_version": ENGINE_VERSION,
+        "rules_version": RULES_VERSION,
+        # ¿Hay clasificador IA configurado? (sin exponer proveedor ni clave)
+        "ai_available": ai_classifier.enabled(),
+    }
 
 
 @app.get("/rules")
@@ -69,6 +83,7 @@ async def analyze(
     request: Request,
     image: UploadFile = File(...),
     x_api_key: str | None = Header(default=None),
+    x_ai_consent: str | None = Header(default=None),
 ) -> dict:
     """Analiza una captura (SMS/correo/mensaje) y devuelve el veredicto."""
     _rl_analyze.check(request)
@@ -79,7 +94,7 @@ async def analyze(
     if len(data) > _MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="La imagen es demasiado grande.")
     try:
-        report = analyze_image_bytes(data)
+        report = analyze_image_bytes(data, ai_consent=_ai_consent(x_ai_consent))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception:
@@ -97,6 +112,7 @@ def analyze_text_endpoint(
     body: TextIn,
     request: Request,
     x_api_key: str | None = Header(default=None),
+    x_ai_consent: str | None = Header(default=None),
 ) -> dict:
     """Analiza una URL o mensaje en texto plano."""
     _rl_text.check(request)
@@ -104,5 +120,5 @@ def analyze_text_endpoint(
     texto = body.texto.strip()
     if not texto:
         raise HTTPException(status_code=400, detail="Texto vacío.")
-    report = analyze_text(texto)
+    report = analyze_text(texto, ai_consent=_ai_consent(x_ai_consent))
     return report_to_dict(report)

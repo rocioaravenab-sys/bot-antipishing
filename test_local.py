@@ -30,7 +30,8 @@ def main() -> None:
     print("=== URLs por OCR ===", ocr_urls or "(ninguna)")
 
     urls = list(dict.fromkeys(qr_urls + ocr_urls))
-    report = scan_message(urls, ocr_text)
+    # --ia: enviar el texto al clasificador IA externo (solo con datos propios).
+    report = scan_message(urls, ocr_text, use_ai="--ia" in sys.argv)
 
     print("\n=== Remitente (teléfono) ===")
     if not report.phones:

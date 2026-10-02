@@ -67,14 +67,14 @@ FALSO_FAMILIAR = "Hola mamá, se me cayó el celu al agua, este es mi número nu
 def test_ai_alone_raises_to_medio(monkeypatch):
     assert scanner.scan_message([], FALSO_FAMILIAR).risk == "BAJO"
     monkeypatch.setattr(ai_classifier, "classify", lambda t: _verdict())
-    report = scanner.scan_message([], FALSO_FAMILIAR)
+    report = scanner.scan_message([], FALSO_FAMILIAR, use_ai=True)
     assert report.risk == "MEDIO"
     assert report.ai_signal and "falso familiar" in report.ai_signal
 
 
 def test_ai_plus_other_signal_reaches_alto(monkeypatch):
     monkeypatch.setattr(ai_classifier, "classify", lambda t: _verdict())
-    report = scanner.scan_message([], FALSO_FAMILIAR + " y transfiere urgente hoy")
+    report = scanner.scan_message([], FALSO_FAMILIAR + " y transfiere urgente hoy", use_ai=True)
     assert report.scam_score > 0
     assert report.risk == "ALTO"
 
@@ -83,27 +83,27 @@ def test_ai_never_lowers_a_heuristic_alto(monkeypatch):
     urls = ["http://aduana-chile-pago.top/tramite"]
     text = "Su encomienda esta retenida por aduana. Pague ahora para liberarla."
     monkeypatch.setattr(ai_classifier, "classify", lambda t: _verdict(False, "alta"))
-    report = scanner.scan_message(urls, text)
+    report = scanner.scan_message(urls, text, use_ai=True)
     assert report.ai_score == 0
     assert report.risk == "ALTO"
 
 
 def test_official_link_with_confident_ai_caps_at_medio(monkeypatch):
     monkeypatch.setattr(ai_classifier, "classify", lambda t: _verdict())
-    report = scanner.scan_message(["https://www.bancoestado.cl/"], "Hola, verifica tu cuenta")
+    report = scanner.scan_message(["https://www.bancoestado.cl/"], "Hola, verifica tu cuenta", use_ai=True)
     assert report.all_official
     assert report.risk == "MEDIO"
 
 
 def test_ai_unavailable_keeps_engine_unchanged():
     # conftest deja classify -> None: mismo veredicto que antes de la IA.
-    report = scanner.scan_message([], FALSO_FAMILIAR)
+    report = scanner.scan_message([], FALSO_FAMILIAR, use_ai=True)
     assert report.ai is None and report.ai_score == 0 and report.ai_signal is None
 
 
 def test_serialize_includes_ai(monkeypatch):
     monkeypatch.setattr(ai_classifier, "classify", lambda t: _verdict())
-    d = report_to_dict(scanner.scan_message([], FALSO_FAMILIAR))
+    d = report_to_dict(scanner.scan_message([], FALSO_FAMILIAR, use_ai=True))
     assert d["ai"]["is_smishing"] is True
     assert d["ai"]["confidence"] == "alta"
     assert d["ai"]["tactics"] == ["cambio_de_numero"]
@@ -317,3 +317,47 @@ def test_qwen_disabled_without_model(qwen, monkeypatch):
     calls = qwen()
     assert real_classify("Pague ahora") is None
     assert calls == []
+
+
+# --- consentimiento: sin él, el texto no sale hacia la IA --------------------
+
+def _spy(monkeypatch):
+    seen = []
+    monkeypatch.setattr(ai_classifier, "classify", lambda t: seen.append(t) or _verdict())
+    return seen
+
+
+def test_no_consent_never_calls_ai(monkeypatch):
+    seen = _spy(monkeypatch)
+    report = scanner.scan_message([], FALSO_FAMILIAR)
+    assert seen == [] and report.ai is None and report.risk == "BAJO"
+
+
+def test_pipeline_passes_consent(monkeypatch):
+    import pipeline
+    seen = _spy(monkeypatch)
+    assert pipeline.analyze_text(FALSO_FAMILIAR).ai is None
+    assert seen == []
+    assert pipeline.analyze_text(FALSO_FAMILIAR, ai_consent=True).ai is not None
+    assert seen == [FALSO_FAMILIAR]
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [(None, False), ("", False), ("0", False), ("true", False), ("1", True), (" 1 ", True)],
+)
+def test_api_consent_header(header, expected):
+    import api
+    assert api._ai_consent(header) is expected
+
+
+def test_api_endpoint_only_uses_ai_with_consent_header(monkeypatch):
+    import api
+    seen = _spy(monkeypatch)
+    req = SimpleNamespace(headers={}, client=SimpleNamespace(host="t"))
+    monkeypatch.setattr(api._rl_text, "check", lambda r: None)
+    body = api.TextIn(texto=FALSO_FAMILIAR)
+    out = api.analyze_text_endpoint(body, req, x_api_key=None, x_ai_consent=None)
+    assert out["ai"] is None and seen == []
+    out = api.analyze_text_endpoint(body, req, x_api_key=None, x_ai_consent="1")
+    assert out["ai"]["is_smishing"] is True and len(seen) == 1

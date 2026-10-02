@@ -136,7 +136,12 @@ Es **una señal más** del veredicto:
   `baja` o "no es smishing" suman 0. **Nunca resta**.
 - Si la API falla o tarda más de `AI_TIMEOUT` s, el análisis sigue sin IA.
 - Se ocultan teléfonos, RUT y correos antes de enviar el texto.
-- La respuesta de la API trae `ai` (detalle) y `ai_signal` (frase para mostrar).
+- **Consentimiento:** la API solo consulta la IA si la petición trae el header
+  `X-AI-Consent: 1` (la app lo envía cuando la persona acepta el análisis con IA
+  externa). Sin el header, el texto no sale del servidor. En local:
+  `python test_local.py <imagen> --ia`.
+- La respuesta de la API trae `ai` (detalle) y `ai_signal` (frase para mostrar);
+  `/health` indica `ai_available`.
 
 ## Próximos pasos sugeridos
 
